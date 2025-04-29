@@ -4,15 +4,34 @@
 library(tidyverse)
 library(vegan)
 library(nlme)
+#library(dreamerr)
+#library(fixest)
 
 
-cover_ppt <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-19.csv")
-info_df <- cover_ppt%>%
+#soil variables for soil variation
+soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")
+summary(soil)#determine which soil variables have most complete data: ph, p, k, c,n
+
+soil_variation <- soil%>%
+  mutate(p = as.numeric(p))%>%
+  group_by(site_code)%>%
+  dplyr::summarise(ph_var = quantile(ph, 0.95, na.rm = TRUE)-quantile(ph, 0.05, na.rm = TRUE),
+                  p_var = quantile(p, 0.95, na.rm = TRUE)-quantile(p, 0.05, na.rm = TRUE),
+                  k_var = quantile(k, 0.95, na.rm = TRUE)-quantile(k, 0.05, na.rm = TRUE),
+                  c_var = quantile(c, 0.95, na.rm = TRUE)-quantile(c, 0.05, na.rm = TRUE),
+                  n_var = quantile(n, 0.95, na.rm = TRUE)-quantile(n, 0.05, na.rm = TRUE))
+  
+
+
+#cover data
+cover_ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-19.csv")%>%
+          subset(habitat.type == "Grassland")
+info_df <- cover_ppt.1%>%
           dplyr::select(site_code, map, habitat.type)%>%
           unique()
 
 #number of replicates, start by requiring at least 5 replicates
-num_replicates <- cover_ppt%>%
+num_replicates <- cover_ppt.1%>%
                   dplyr::select(site_code, trt, block, plot, subplot)%>%
                   unique()%>%
                   group_by(site_code, trt)%>%
@@ -20,12 +39,34 @@ num_replicates <- cover_ppt%>%
                   pivot_wider(names_from = "trt", values_from = "replicates")%>%
                   subset(Control >= 5 & Drought >=5)
 
-cover_ppt <- subset(cover_ppt, site_code %in% num_replicates$site_code)%>%
-            subset(n_treat_years ==1) #starting with just the third treatment year. To add more treatment years you need to tinker with the loop below so that it contrains calculations for each treatment year
+cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)%>%
+            subset(n_treat_years ==3) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
             
 
+relprecip_by_site_n_trt_year <- cover_ppt.1%>%
+                                  dplyr::select(site_code, year, n_treat_years, trt, ppt.1, ppt.2, ppt.3, ppt.4, map)%>%
+                                  unique()%>%
+                                  mutate(relprecip.1 = (ppt.1-map)/map,
+                                         relprecip.2 = (ppt.2-map)/map,
+                                         relprecip.3 = (ppt.3-map)/map,
+                                         relprecip.4 = (ppt.4-map)/map)
 
 
+#calculate alpha diversity
+alpha_richness_by_site <- cover_ppt.1%>%
+  group_by(site_code, trt, n_treat_years, block, plot, subplot)%>%
+  dplyr::summarize(richness = n())%>%
+  group_by(site_code, trt, n_treat_years)%>%
+  dplyr::summarise(mean_richness = mean(richness))
+
+
+
+#calculate gamma diversity
+
+
+
+
+#loop to calculate beta diversity by site, treatment, year
 
 site_vector <- unique(cover_ppt$site_code)
 
@@ -35,25 +76,46 @@ for(i in 1:length(site_vector)) {
   temp.df <- subset(cover_ppt, site_code == site_vector[i])
   
   temp.wide <- temp.df%>%
+    dplyr::select(site_code, year, n_treat_years, trt, block, plot, subplot, Taxon, max_cover)%>%
     pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
-  temp.distances <- vegdist(temp.wide[30:ncol(temp.wide)], method = "bray")#CHECK THE NUMBER OF THE STARTING COLUMN, SUBJECT TO CHANGE WITH DATA UPDATES
+  temp.distances <- vegdist(temp.wide[8:ncol(temp.wide)], method = "bray")#CHECK THE NUMBER OF THE STARTING COLUMN, SUBJECT TO CHANGE WITH DATA UPDATES
   temp.mod <- betadisper(temp.distances, group = temp.wide$trt, type = "centroid")
-  distances_temp <- data.frame(site_code = site_vector[i], trt = temp.wide$trt, dist = temp.mod$dist)
+  distances_temp <- data.frame(site_code = site_vector[i], trt = temp.wide$trt, dist = temp.mod$dist, year = temp.wide$year, n_treat_years = temp.wide$n_treat_years )
   #distances_temp <- subset(distances_temp, dist > 0.00000000001) #not necessary when cO2 treatment excluded
-  #distances_temp$dist <- ifelse(distances_temp$dist > 0.00000000001, distances_temp$dist, 0.001) #changes value for single serc experiment where distance equals essentially 0 which doesn't work with response ratios
+  
   distances_master <- rbind(distances_master, distances_temp )
   rm(temp.df, temp.wide, temp.distances, temp.mod, distances_temp)
 }
 
 mean.dist.df <- distances_master%>%
-                group_by(site_code, trt)%>%
+                group_by(site_code, trt, year, n_treat_years)%>%
                 dplyr::summarize(mean_dist = mean(dist))
 
+dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
+            left_join(soil_variation, by = "site_code")%>%
+            left_join(relprecip_by_site_n_trt_year, by = c("site_code", "year", "n_treat_years", "trt", "map"))%>%
+            mutate(multyear.relprecip = mean(relprecip.1, relprecip.2,relprecip.3,relprecip.4))
 
 
 ##quick look
-dist.df <- left_join(mean.dist.df, info_df, by = "site_code")
+
 
 mod <- lme(mean_dist~trt*map, random = ~1|site_code, data = dist.df)
 summary(mod)
 
+
+##alpha and gamma
+
+#mod <- feols(`Beta diversity` ~ `Alpha diversity` + `Drought severity` + `Gamma diversity` + `Soil variation vars`, data = ) #need to add more information to run this
+
+
+
+#minimalist
+mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var, data = dist.df) #need just a little more data for this
+summary(mod)
+
+mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var, data = dist.df) #need just a little more data for this
+summary(mod)
+
+#nestedness vs turnover
+#mod <- feols(`Beta diversity` ~ Nestedness + Turnover + `Soil variation vars`, data = ) #this one would require a different calculation of beta diversity that incorporates nestedness and turnover

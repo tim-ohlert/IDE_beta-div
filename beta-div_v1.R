@@ -4,8 +4,8 @@
 library(tidyverse)
 library(vegan)
 library(nlme)
-#library(dreamerr)
-#library(fixest)
+library(dreamerr)
+library(fixest)
 
 
 #soil variables for soil variation
@@ -39,8 +39,8 @@ num_replicates <- cover_ppt.1%>%
                   pivot_wider(names_from = "trt", values_from = "replicates")%>%
                   subset(Control >= 5 & Drought >=5)
 
-cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)%>%
-            subset(n_treat_years ==3) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
+cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)#%>%
+           # subset(n_treat_years ==1) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
             
 
 relprecip_by_site_n_trt_year <- cover_ppt.1%>%
@@ -111,10 +111,10 @@ summary(mod)
 
 
 #minimalist
-mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var, data = dist.df) #need just a little more data for this
+mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var+ site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
-mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var, data = dist.df) #need just a little more data for this
+mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
 #nestedness vs turnover

@@ -4,7 +4,6 @@
 library(tidyverse)
 library(vegan)
 library(nlme)
-library(dreamerr)
 library(fixest)
 
 
@@ -39,8 +38,8 @@ num_replicates <- cover_ppt.1%>%
                   pivot_wider(names_from = "trt", values_from = "replicates")%>%
                   subset(Control >= 5 & Drought >=5)
 
-cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)#%>%
-           # subset(n_treat_years ==1) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
+cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)%>%
+             subset(n_treat_years >= 1 & n_treat_years <= 4) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
             
 
 relprecip_by_site_n_trt_year <- cover_ppt.1%>%
@@ -62,7 +61,20 @@ alpha_richness_by_site <- cover_ppt.1%>%
 
 
 #calculate gamma diversity
-
+gamma_by_site <- cover_ppt.1%>%
+  subset(n_treat_years == 0)%>%
+  dplyr::select(site_code, block, plot, subplot)%>%
+  unique()%>%
+  group_by(site_code)%>%
+  dplyr::summarise(n_plots = n())%>%
+  left_join(cover_ppt.1, by = "site_code")%>%
+  subset(n_treat_years == 0)%>%
+  dplyr::select(site_code, Taxon, n_plots)%>%
+  unique()%>%
+  group_by(site_code, n_plots)%>%
+  dplyr::summarise(gamma_rich = n())%>%
+  mutate(gamma_rich_relative = gamma_rich/n_plots) #you have to relatvize by number of plots for different sampling effort
+  
 
 
 
@@ -105,8 +117,12 @@ summary(mod)
 
 
 ##alpha and gamma
+a.g.df <- dist.df%>%
+          left_join(alpha_richness_by_site, by = c("site_code", "trt", "n_treat_years"))%>%
+          left_join(gamma_by_site, by = "site_code")
 
-#mod <- feols(`Beta diversity` ~ `Alpha diversity` + `Drought severity` + `Gamma diversity` + `Soil variation vars`, data = ) #need to add more information to run this
+mod <- feols(mean_dist ~ mean_richness + relprecip.1 + gamma_rich_relative + ph_var + p_var + k_var + c_var + n_var | site_code, data = a.g.df) #need to add more information to run this
+summary(mod)
 
 
 
@@ -114,7 +130,22 @@ summary(mod)
 mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var+ site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
+mod <- feols(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var | site_code, data = dist.df)
+summary(mod)
+
+
+
+
+
+
+
 mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
+summary(mod)
+
+mod <- feols(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var | site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist ~ multyear.relprecip + map | site_code, data = dist.df)
 summary(mod)
 
 #nestedness vs turnover

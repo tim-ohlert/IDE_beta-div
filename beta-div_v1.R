@@ -121,7 +121,7 @@ a.g.df <- dist.df%>%
           left_join(alpha_richness_by_site, by = c("site_code", "trt", "n_treat_years"))%>%
           left_join(gamma_by_site, by = "site_code")
 
-mod <- feols(mean_dist ~ mean_richness + relprecip.1 + gamma_rich_relative + ph_var + p_var + k_var + c_var + n_var | site_code + n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this
+mod <- feols(mean_dist ~ mean_richness + relprecip.1 + gamma_rich_relative + ph_var + p_var + k_var + c_var + n_var | site_code + n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
 summary(mod)
 
 
@@ -130,14 +130,17 @@ summary(mod)
 mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var+ site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
-mod <- feols(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var | site_code, data = dist.df)
+mod <- feols(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var + 
+               #| #site_code
+                , data = dist.df)
 summary(mod)
 
 
 
 
-
-
+library(PerformanceAnalytics)
+mat <- dist.df[,c("map", "ph_var", "p_var", "k_var", "c_var", "n_var", "relprecip.1")]
+chart.Correlation(mat, histogram = TRUE)
 
 mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
 summary(mod)

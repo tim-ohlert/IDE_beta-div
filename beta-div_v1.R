@@ -106,7 +106,7 @@ mean.dist.df <- distances_master%>%
 dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
             left_join(soil_variation, by = "site_code")%>%
             left_join(relprecip_by_site_n_trt_year, by = c("site_code", "year", "n_treat_years", "trt", "map"))%>%
-            mutate(multyear.relprecip = mean(relprecip.1, relprecip.2,relprecip.3,relprecip.4))
+            mutate(multyear.relprecip = (relprecip.1+relprecip.2+relprecip.3+relprecip.4)/4)
 
 
 ##quick look
@@ -121,7 +121,8 @@ a.g.df <- dist.df%>%
           left_join(alpha_richness_by_site, by = c("site_code", "trt", "n_treat_years"))%>%
           left_join(gamma_by_site, by = "site_code")
 
-mod <- feols(mean_dist ~ mean_richness + relprecip.1 + gamma_rich_relative + ph_var + p_var + k_var + c_var + n_var | site_code + n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
+mod <- feols(mean_dist ~ mean_richness + relprecip.1 * gamma_rich_relative #+ ph_var + p_var + k_var + c_var + n_var 
+             | site_code + n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
 summary(mod)
 
 
@@ -130,8 +131,9 @@ summary(mod)
 mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var+ site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
-mod <- feols(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var + 
-               #| #site_code
+mod <- feols(mean_dist ~ relprecip.1 * map 
+             #+ ph_var + p_var + k_var + c_var + n_var + 
+               | site_code
                 , data = dist.df)
 summary(mod)
 
@@ -142,13 +144,21 @@ library(PerformanceAnalytics)
 mat <- dist.df[,c("map", "ph_var", "p_var", "k_var", "c_var", "n_var", "relprecip.1")]
 chart.Correlation(mat, histogram = TRUE)
 
-mod <- lm(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
+mod <- lm(mean_dist ~ multyear.relprecip * map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
 summary(mod)
 
-mod <- feols(mean_dist ~ multyear.relprecip + map + ph_var + p_var + k_var + c_var + n_var | site_code, data = dist.df)
+mod <- feols(mean_dist ~ multyear.relprecip * map 
+             #+ ph_var + p_var + k_var + c_var + n_var 
+              | site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist ~ multyear.relprecip + map | site_code + n_treat_years, cluster = ~site_code, data = dist.df)
+mod <- feols(mean_dist ~ multyear.relprecip | site_code + n_treat_years, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist ~ multyear.relprecip * n_treat_years | site_code , data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist ~ relprecip.1 * n_treat_years | site_code , data = dist.df)
 summary(mod)
 
 #nestedness vs turnover

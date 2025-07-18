@@ -90,10 +90,19 @@ for(i in 1:length(site_vector)) {
   temp.wide <- temp.df%>%
     dplyr::select(site_code, year, n_treat_years, trt, block, plot, subplot, Taxon, max_cover)%>%
     pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
-  temp.distances <- vegdist(temp.wide[8:ncol(temp.wide)], method = "bray")#CHECK THE NUMBER OF THE STARTING COLUMN, SUBJECT TO CHANGE WITH DATA UPDATES
-  temp.mod <- betadisper(temp.distances, group = temp.wide$trt, type = "centroid")
-  distances_temp <- data.frame(site_code = site_vector[i], trt = temp.wide$trt, dist = temp.mod$dist, year = temp.wide$year, n_treat_years = temp.wide$n_treat_years )
+  temp.distances.bray <- vegdist(temp.wide[8:ncol(temp.wide)], method = "bray")#CHECK THE NUMBER OF THE STARTING COLUMN, SUBJECT TO CHANGE WITH DATA UPDATES
+  temp.mod.bray <- betadisper(temp.distances.bray, group = temp.wide$trt, type = "centroid")
+  
+  temp.distances.jaccard <- vegdist(temp.wide[8:ncol(temp.wide)], method = "jaccard")#CHECK THE NUMBER OF THE STARTING COLUMN, SUBJECT TO CHANGE WITH DATA UPDATES
+  temp.mod.jaccard <- betadisper(temp.distances.jaccard, group = temp.wide$trt, type = "centroid")
+  
+  distances_temp <- data.frame(site_code = site_vector[i], trt = temp.wide$trt, dist.bray = temp.mod.bray$dist, dist.jaccard = temp.mod.jaccard$dist, year = temp.wide$year, n_treat_years = temp.wide$n_treat_years )
   #distances_temp <- subset(distances_temp, dist > 0.00000000001) #not necessary when cO2 treatment excluded
+  
+  
+
+  
+  
   
   distances_master <- rbind(distances_master, distances_temp )
   rm(temp.df, temp.wide, temp.distances, temp.mod, distances_temp)
@@ -101,7 +110,7 @@ for(i in 1:length(site_vector)) {
 
 mean.dist.df <- distances_master%>%
                 group_by(site_code, trt, year, n_treat_years)%>%
-                dplyr::summarize(mean_dist = mean(dist))
+                dplyr::summarize(mean_dist.bray = mean(dist.bray), mean_dist.jaccard = mean(dist.jaccard))
 
 dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
             left_join(soil_variation, by = "site_code")%>%
@@ -109,10 +118,67 @@ dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
             mutate(multyear.relprecip = (relprecip.1+relprecip.2+relprecip.3+relprecip.4)/4)
 
 
+
+##bray vs jaccard
+#simple treatment
+mod <- feols(mean_dist.bray ~ trt|n_treat_years, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ trt|n_treat_years, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+##relprecip
+mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years+site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years+site_code, data = dist.df)
+summary(mod)
+
+
+##Over time
+mod <- feols(mean_dist.bray ~ trt * n_treat_years | site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ trt * n_treat_years | site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ multyear.relprecip|site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ multyear.relprecip|site_code, data = dist.df)
+summary(mod)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##quick look
 
-
-mod <- lme(mean_dist~trt*map, random = ~1|site_code, data = dist.df)
+mod <- lme(mean_dist.bray~trt*map, random = ~1|site_code, data = dist.df)
+summary(mod)
+mod <- lme(mean_dist.jaccard~trt*map, random = ~1|site_code, data = dist.df)
 summary(mod)
 
 
@@ -122,7 +188,7 @@ a.g.df <- dist.df%>%
           left_join(gamma_by_site, by = "site_code")
 
 mod <- feols(mean_dist ~ mean_richness + relprecip.1 * gamma_rich_relative #+ ph_var + p_var + k_var + c_var + n_var 
-             | site_code + n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
+             | n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
 summary(mod)
 
 
@@ -133,7 +199,7 @@ summary(mod)
 
 mod <- feols(mean_dist ~ relprecip.1 * map 
              #+ ph_var + p_var + k_var + c_var + n_var + 
-               | site_code
+               ,cluster = ~site_code
                 , data = dist.df)
 summary(mod)
 
@@ -149,16 +215,16 @@ summary(mod)
 
 mod <- feols(mean_dist ~ multyear.relprecip * map 
              #+ ph_var + p_var + k_var + c_var + n_var 
-              | site_code, data = dist.df)
+             ,cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist ~ multyear.relprecip | site_code + n_treat_years, cluster = ~site_code, data = dist.df)
+mod <- feols(mean_dist ~ multyear.relprecip |  n_treat_years, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 mod <- feols(mean_dist ~ multyear.relprecip * n_treat_years | site_code , data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist ~ relprecip.1 * n_treat_years | site_code , data = dist.df)
+mod <- feols(mean_dist ~ relprecip.1 * n_treat_years ,cluster = ~site_code , data = dist.df)
 summary(mod)
 
 #nestedness vs turnover

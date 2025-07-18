@@ -128,24 +128,24 @@ mod <- feols(mean_dist.jaccard ~ trt|n_treat_years, cluster = ~site_code, data =
 summary(mod)
 
 ##relprecip
-mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years+site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years+site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 
 ##Over time
-mod <- feols(mean_dist.bray ~ trt * n_treat_years | site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ trt * n_treat_years | site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt * n_treat_years | site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ trt * n_treat_years | site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ multyear.relprecip|site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ multyear.relprecip|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ multyear.relprecip|site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ multyear.relprecip|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 

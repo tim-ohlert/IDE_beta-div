@@ -125,6 +125,8 @@ mod <- lme(mean_dist.bray ~ trt, random = list(n_treat_years=~1,site_code=~1), d
 summary(mod)
 mod <- feols(mean_dist.bray ~ trt|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+mod <- feols(mean_dist.bray ~ trt|n_treat_years, panel.id = ~site_code+n_treat_years, data = dist.df)
+summary(mod)
 
 x <- ggpredict(mod, "trt")
 
@@ -138,6 +140,9 @@ summary(mod)
 ##relprecip
 mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years, panel.id = ~site_code+n_treat_years, cluster = ~site_code, data = dist.df)
+summary(mod)
+
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)

@@ -1,6 +1,6 @@
 
 
-
+library(ggeffects)
 library(tidyverse)
 library(vegan)
 library(nlme)
@@ -121,10 +121,18 @@ dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
 
 ##bray vs jaccard
 #simple treatment
-mod <- feols(mean_dist.bray ~ trt|n_treat_years, cluster = ~site_code, data = dist.df)
+mod <- lme(mean_dist.bray ~ trt, random = list(n_treat_years=~1,site_code=~1), data = dist.df)
+summary(mod)
+mod <- feols(mean_dist.bray ~ trt|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt|n_treat_years, cluster = ~site_code, data = dist.df)
+x <- ggpredict(mod, "trt")
+
+ggplot(x, aes(x, predicted))+
+  geom_pointrange(aes(ymin = predicted-std.error, ymax = predicted+std.error))
+
+
+mod <- feols(mean_dist.jaccard ~ trt|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 ##relprecip
@@ -136,10 +144,10 @@ summary(mod)
 
 
 ##Over time
-mod <- feols(mean_dist.bray ~ trt * n_treat_years | site_code, cluster = ~site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt * n_treat_years | site_code, cluster = ~site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 mod <- feols(mean_dist.bray ~ multyear.relprecip|site_code, cluster = ~site_code, data = dist.df)

@@ -127,6 +127,8 @@ mod <- feols(mean_dist.bray ~ trt|n_treat_years+site_code, cluster = ~site_code,
 summary(mod)
 mod <- feols(mean_dist.bray ~ trt|n_treat_years, panel.id = ~site_code+n_treat_years, data = dist.df)
 summary(mod)
+mod <- feols(mean_dist.bray ~ trt, panel.id = c("site_code","n_treat_years"), data = dist.df)
+summary(mod)
 
 x <- ggpredict(mod, "trt")
 
@@ -140,9 +142,11 @@ summary(mod)
 ##relprecip
 mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years, panel.id = ~site_code+n_treat_years, cluster = ~site_code, data = dist.df)
-summary(mod)
 
+mod <- feols(mean_dist.bray ~ relprecip.1, panel.id = c("site_code","n_treat_years"), data = dist.df)
+summary(mod)
+mod<- lme(mean_dist.bray ~ relprecip.1, random = list(site_code= ~1, n_treat_years=~1), data = dist.df)
+summary(mod)
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
@@ -150,6 +154,10 @@ summary(mod)
 
 ##Over time
 mod <- feols(mean_dist.bray ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
+summary(mod, vcov = "cluster")
+mod <- feols(mean_dist.bray ~ trt * n_treat_years, panel.id = ~site_code, data = dist.df)
+summary(mod)
+mod <- lme(mean_dist.bray ~ trt * n_treat_years, random =  list(site_code=~1), data = dist.df)
 summary(mod)
 
 mod <- feols(mean_dist.jaccard ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)

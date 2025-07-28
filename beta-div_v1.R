@@ -7,6 +7,13 @@ library(nlme)
 library(fixest)
 
 
+
+#site info
+Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")
+
+#climate info
+climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_mean_annual_by_site_v3.csv")
+
 #soil variables for soil variation
 soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")
 summary(soil)#determine which soil variables have most complete data: ph, p, k, c,n
@@ -28,6 +35,24 @@ cover_ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_202
 info_df <- cover_ppt.1%>%
           dplyr::select(site_code, map, habitat.type)%>%
           unique()
+
+nreps <- cover_ppt.1%>%
+  subset(n_treat_years == 0)%>%
+  dplyr::select(site_code, block,plot, subplot)%>%
+  unique()%>%
+  group_by(site_code)%>%
+  dplyr::summarize(reps = n())
+  
+gamma <- cover_ppt.1%>%
+          subset(n_treat_years == 0)%>%
+          dplyr::select(site_code, Taxon)%>%
+          unique()%>%
+          group_by(site_code)%>%
+          dplyr::summarize(richness = n())%>%
+          left_join(nreps, by = "site_code")%>%
+          mutate(gamma_rich = richness/reps)%>%
+          dplyr::select(site_code, gamma_rich)
+          
 
 #number of replicates, start by requiring at least 5 replicates
 num_replicates <- cover_ppt.1%>%
@@ -101,9 +126,6 @@ for(i in 1:length(site_vector)) {
   
   
 
-  
-  
-  
   distances_master <- rbind(distances_master, distances_temp )
   rm(temp.df, temp.wide, temp.distances, temp.mod, distances_temp)
 }
@@ -166,6 +188,48 @@ summary(mod)
 mod <- feols(mean_dist.jaccard ~ multyear.relprecip, panel.id = ~site_code, data = dist.df)
 summary(mod)
 
+
+
+##################
+##site attribute moderators
+#mean annual precipitation
+dist.climate <- dist.df%>%
+  left_join(climate, by = "site_code")
+
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ trt + trt:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ trt + trt:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+summary(mod)
+
+#nestedness of the community pretreatment
+
+
+
+
+#gamma diversity
+dist.gamma <- dist.climate%>%
+  left_join(gamma, by = "site_code")
+
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ trt + trt:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ trt + trt:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+summary(mod)
+
+#percent of annual species cover
 
 
 

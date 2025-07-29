@@ -14,6 +14,9 @@ Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_El
 #climate info
 climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_mean_annual_by_site_v3.csv")
 
+
+prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
+
 #soil variables for soil variation
 soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")
 summary(soil)#determine which soil variables have most complete data: ph, p, k, c,n
@@ -208,10 +211,6 @@ summary(mod)
 mod <- feols(mean_dist.jaccard ~ trt + trt:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
 summary(mod)
 
-#nestedness of the community pretreatment
-
-
-
 
 #gamma diversity
 dist.gamma <- dist.climate%>%
@@ -230,10 +229,22 @@ mod <- feols(mean_dist.jaccard ~ trt + trt:gamma_rich |n_treat_years, panel.id =
 summary(mod)
 
 #percent of annual species cover
+dist.prop <- dist.gamma%>%
+  left_join(prop, by = "site_code")
 
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+summary(mod)
 
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+summary(mod)
 
+mod <- feols(mean_dist.bray ~ trt + trt:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+summary(mod)
 
+mod <- feols(mean_dist.jaccard ~ trt + trt:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+summary(mod)
+
+#nestedness of the community pretreatment
 
 
 

@@ -245,21 +245,53 @@ mod <- feols(mean_dist.jaccard ~ trt + trt:PctAnnual |n_treat_years, panel.id = 
 summary(mod)
 
 #nestedness of the community pretreatment
+#calculate that nestedness component
+library(betapart)
 
+pretreatment <- cover_ppt.1%>%
+                subset(n_treat_years == 0)
 
+site_vector <- unique(pretreatment$site_code)
 
+nestedness_master <- {}
 
+for(i in 1:length(site_vector)) {
+  
+  temp.df <- subset(pretreatment, site_code == site_vector[i])
+  
+  temp.wide <- temp.df%>%
+    dplyr::select(site_code, block, plot, subplot, Taxon, max_cover)%>%
+    mutate(max_cover = ifelse(max_cover>0, 1, 0))%>%
+    pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
+  
+  temp.beta <- beta.multi(temp.wide[5:ncol(temp.wide)]) 
+  #SNE is nestedness w/ sorensen
+  #SOR is total sorensen
+  
+  nestedness_temp <- data.frame(site_code = site_vector[i], nestedness = temp.beta$beta.SNE, total = temp.beta$beta.SOR, proportion.nestedness = temp.beta$beta.SNE/temp.beta$beta.SOR)
+                               
+                              
+  nestedness_master <- rbind(nestedness_master, nestedness_temp )
+  rm(temp.df, temp.wide, temp.beta, nestedness_temp)
+  
+}
 
+head(nestedness_master)
 
+dist.nest <- dist.prop%>%
+  left_join(nestedness_master, by = "site_code")
 
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+summary(mod)
 
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+summary(mod)
 
+mod <- feols(mean_dist.bray ~ trt + trt:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+summary(mod)
 
-
-
-
-
-
+mod <- feols(mean_dist.jaccard ~ trt + trt:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+summary(mod)
 
 
 

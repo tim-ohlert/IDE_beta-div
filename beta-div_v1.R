@@ -5,7 +5,10 @@ library(tidyverse)
 library(vegan)
 library(nlme)
 library(fixest)
-
+library(sandwich)
+library(RcmdrMisc)
+library(lmtest)
+library(ggthemes)
 
 
 #site info
@@ -140,55 +143,93 @@ mean.dist.df <- distances_master%>%
 dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
             left_join(soil_variation, by = "site_code")%>%
             left_join(relprecip_by_site_n_trt_year, by = c("site_code", "year", "n_treat_years", "trt", "map"))%>%
-            mutate(multyear.relprecip = (relprecip.1+relprecip.2+relprecip.3+relprecip.4)/4, site.year.dummy = paste(site_code, year, sep = "-"))
+            mutate(multyear.relprecip = (relprecip.1+relprecip.2+relprecip.3+relprecip.4)/4, site.year.dummy = paste(site_code, year, sep = "-"))#, n_treat_years = as.character(n_treat_years))
 
 
 
 ##bray vs jaccard
 #simple treatment
-#mod <- lme(mean_dist.bray ~ trt, random = list(site_code=~1), correlation = corAR1(form = ~n_treat_years|site_code), data = dist.df)
-#summary(mod)
-#mod <- feols(mean_dist.bray ~ trt|n_treat_years+site_code, cluster = ~site_code, data = dist.df)
-#summary(mod)
-mod <- feols(mean_dist.bray ~ trt|n_treat_years, panel.id = ~site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ trt|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+summary(mod, vcov = vcovHAC, cluster = ~site_code + n_treat_years)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+bray <- data.frame(metric = "Bray", mean = coeftest(mod, vcov = NeweyWest(mod))[1], se = coeftest(mod, vcov = NeweyWest(mod))[2])
+
+
+
+#x <- ggpredict(mod, "trt")
+
+#ggplot(x, aes(x, predicted))+
+#  geom_pointrange(aes(ymin = predicted-std.error, ymax = predicted+std.error))
+
+
+mod <- feols(mean_dist.jaccard ~ trt|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-#mod <- feols(mean_dist.bray ~ trt, panel.id = c("site_code","n_treat_years"), data = dist.df)
-#summary(mod)
+summary(mod, vcov = vcovHAC, cluster = ~site_code + n_treat_years)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+jac <- data.frame(metric = "Jaccard", mean = coeftest(mod, vcov = NeweyWest(mod))[1], se = coeftest(mod, vcov = NeweyWest(mod))[2])
 
-x <- ggpredict(mod, "trt")
 
-ggplot(x, aes(x, predicted))+
-  geom_pointrange(aes(ymin = predicted-std.error, ymax = predicted+std.error))
+bray%>%
+  rbind(jac)%>%
+ggplot(aes(metric, mean))+
+  geom_pointrange(aes(ymin = mean-se, ymax = mean+se))+
+  geom_hline(yintercept = 0)+
+  theme_base()
 
 
-mod <- feols(mean_dist.jaccard ~ trt|n_treat_years, panel.id = ~site_code, data = dist.df)
+
+
+
+
+##relprecip##relprecipcluster = 
+mod <- feols(mean_dist.bray ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+vcovHAC(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = NeweyWest(mod, lag = 4))
+bray <- data.frame(metric = "Bray", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
-##relprecip
-mod <- feols(mean_dist.bray ~ relprecip.1|n_treat_years, panel.id = ~site_code, data = dist.df)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = NeweyWest(mod, lag = 4))
+jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
-#mod <- feols(mean_dist.bray ~ relprecip.1, panel.id = c("site_code","n_treat_years"), data = dist.df)
-#summary(mod)
-#mod<- lme(mean_dist.bray ~ relprecip.1, random = list(site_code= ~1, n_treat_years=~1), data = dist.df)
-#summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1|n_treat_years, panel.id = ~site_code, data = dist.df)
-summary(mod)
+bray%>%
+  rbind(jac)%>%
+  ggplot(aes( group = metric))+
+  ylim(0,0.6)+
+  xlim(-1,1)+
+  geom_abline(aes(slope = slope, intercept = intercept))+
+  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted")+
+  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted")+
+  theme_base()
 
 
 ##Over time
-mod <- feols(mean_dist.bray ~ trt * n_treat_years, panel.id = ~site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 
-mod <- feols(mean_dist.jaccard ~ trt * n_treat_years, panel.id = ~site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ multyear.relprecip, panel.id = ~site_code, data = dist.df)
+mod <- feols(mean_dist.bray ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ multyear.relprecip, panel.id = ~site_code, data = dist.df)
+mod <- feols(mean_dist.jaccard ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
 summary(mod)
 
 
@@ -199,16 +240,16 @@ summary(mod)
 dist.climate <- dist.df%>%
   left_join(climate, by = "site_code")
 
-mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ trt + trt:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+mod <- feols(mean_dist.bray ~ trt + trt:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt + trt:MAP |n_treat_years, panel.id = ~site_code, data = dist.climate)
+mod <- feols(mean_dist.jaccard ~ trt + trt:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
 
 
@@ -216,32 +257,32 @@ summary(mod)
 dist.gamma <- dist.climate%>%
   left_join(gamma, by = "site_code")
 
-mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ trt + trt:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+mod <- feols(mean_dist.bray ~ trt + trt:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt + trt:gamma_rich |n_treat_years, panel.id = ~site_code, data = dist.gamma)
+mod <- feols(mean_dist.jaccard ~ trt + trt:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
 
 #percent of annual species cover
 dist.prop <- dist.gamma%>%
   left_join(prop, by = "site_code")
 
-mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ trt + trt:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+mod <- feols(mean_dist.bray ~ trt + trt:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt + trt:PctAnnual |n_treat_years, panel.id = ~site_code, data = dist.prop)
+mod <- feols(mean_dist.jaccard ~ trt + trt:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
 
 #nestedness of the community pretreatment
@@ -281,76 +322,21 @@ head(nestedness_master)
 dist.nest <- dist.prop%>%
   left_join(nestedness_master, by = "site_code")
 
-mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ trt + trt:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
+mod <- feols(mean_dist.bray ~ trt + trt:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt + trt:proportion.nestedness |n_treat_years, panel.id = ~site_code, data = dist.nest)
-summary(mod)
-
-
-
-
-
-
-
-##quick look
-
-mod <- lme(mean_dist.bray~trt*map, random = ~1|site_code, data = dist.df)
-summary(mod)
-mod <- lme(mean_dist.jaccard~trt*map, random = ~1|site_code, data = dist.df)
-summary(mod)
-
-
-##alpha and gamma
-a.g.df <- dist.df%>%
-          left_join(alpha_richness_by_site, by = c("site_code", "trt", "n_treat_years"))%>%
-          left_join(gamma_by_site, by = "site_code")
-
-mod <- feols(mean_dist ~ mean_richness + relprecip.1 * gamma_rich_relative #+ ph_var + p_var + k_var + c_var + n_var 
-             | n_treat_years, cluster = ~site_code, data = a.g.df) #need to add more information to run this. include interaction of site code and n_treat_years
-summary(mod)
-
-
-
-#minimalist
-mod <- lm(mean_dist ~ relprecip.1 + map + ph_var + p_var + k_var + c_var + n_var+ site_code, data = dist.df) #need just a little more data for this
-summary(mod)
-
-mod <- feols(mean_dist ~ relprecip.1 * map 
-             #+ ph_var + p_var + k_var + c_var + n_var + 
-               ,cluster = ~site_code
-                , data = dist.df)
+mod <- feols(mean_dist.jaccard ~ trt + trt:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
 
 
 
 
-library(PerformanceAnalytics)
-mat <- dist.df[,c("map", "ph_var", "p_var", "k_var", "c_var", "n_var", "relprecip.1")]
-chart.Correlation(mat, histogram = TRUE)
 
-mod <- lm(mean_dist ~ multyear.relprecip * map + ph_var + p_var + k_var + c_var + n_var + site_code, data = dist.df) #need just a little more data for this
-summary(mod)
 
-mod <- feols(mean_dist ~ multyear.relprecip * map 
-             #+ ph_var + p_var + k_var + c_var + n_var 
-             ,cluster = ~site_code, data = dist.df)
-summary(mod)
 
-mod <- feols(mean_dist ~ multyear.relprecip |  n_treat_years, cluster = ~site_code, data = dist.df)
-summary(mod)
-
-mod <- feols(mean_dist ~ multyear.relprecip * n_treat_years | site_code , data = dist.df)
-summary(mod)
-
-mod <- feols(mean_dist ~ relprecip.1 * n_treat_years ,cluster = ~site_code , data = dist.df)
-summary(mod)
-
-#nestedness vs turnover
-#mod <- feols(`Beta diversity` ~ Nestedness + Turnover + `Soil variation vars`, data = ) #this one would require a different calculation of beta diversity that incorporates nestedness and turnover

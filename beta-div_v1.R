@@ -58,8 +58,17 @@ gamma <- cover_ppt.1%>%
           left_join(nreps, by = "site_code")%>%
           mutate(gamma_rich = richness/reps)%>%
           dplyr::select(site_code, gamma_rich)
-          
 
+dominance <- cover_ppt.1%>%
+          subset(n_treat_years == 0)%>%
+          dplyr::select(site_code, block, plot, subplot, Taxon, max_cover)%>%
+          unique()%>%
+          group_by(site_code, block, plot, subplot)%>%
+          dplyr::summarize(dominance = max(max_cover)/sum(max_cover) )%>%
+          group_by(site_code)%>%
+          dplyr::summarize(bc_dominance = mean(dominance))
+          
+  
 #number of replicates, start by requiring at least 5 replicates
 num_replicates <- cover_ppt.1%>%
                   dplyr::select(site_code, trt, block, plot, subplot)%>%
@@ -73,7 +82,7 @@ cover_ppt <- subset(cover_ppt.1, site_code %in% num_replicates$site_code)%>%
              subset(n_treat_years >= 1 & n_treat_years <= 4) #starting with just the first treatment year. To add more treatment years you need to tinker with the loop below so that it constrains calculations for each treatment year
             
 
-relprecip_by_site_n_trt_year <- cover_ppt.1%>%
+relprecip_by_site_n_trt_year <- cover_ppt%>%
                                   dplyr::select(site_code, year, n_treat_years, trt, ppt.1, ppt.2, ppt.3, ppt.4, map)%>%
                                   unique()%>%
                                   mutate(relprecip.1 = (ppt.1-map)/map,
@@ -335,7 +344,22 @@ mod <- feols(mean_dist.jaccard ~ trt + trt:proportion.nestedness |as.factor(n_tr
 summary(mod)
 
 
+#dominance of community pre-treatment
+dist.dom <- dist.nest%>%
+  left_join(dominance, by = "site_code")
 
+
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ trt + trt:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ trt + trt:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
 
 
 

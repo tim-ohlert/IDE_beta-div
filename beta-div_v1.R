@@ -235,6 +235,27 @@ summary(mod)
 mod <- feols(mean_dist.jaccard ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 
+
+mod <- feols(mean_dist.bray ~ relprecip.1 * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+
+
 mod <- feols(mean_dist.bray ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
 summary(mod)
 

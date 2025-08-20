@@ -203,16 +203,22 @@ ggplot(aes(metric, mean))+
 ##relprecip##relprecipcluster = 
 mod <- feols(mean_dist.bray ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-vcovHAC(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = NeweyWest(mod, lag = 4))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 bray <- data.frame(metric = "Bray", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
-summary(mod)
+summary(mod)coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = NeweyWest(mod, lag = 4))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
 
@@ -230,38 +236,93 @@ bray%>%
 ##Over time
 mod <- feols(mean_dist.bray ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ relprecip.1 * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 * n_treat_years|site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 
 ##################
@@ -272,16 +333,39 @@ dist.climate <- dist.df%>%
 
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ trt + trt:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt + trt:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 #gamma diversity
 dist.gamma <- dist.climate%>%
@@ -289,15 +373,39 @@ dist.gamma <- dist.climate%>%
 
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ trt + trt:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt + trt:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 #percent of annual species cover
 dist.prop <- dist.gamma%>%
@@ -305,15 +413,39 @@ dist.prop <- dist.gamma%>%
 
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ trt + trt:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt + trt:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 #nestedness of the community pretreatment
 #calculate that nestedness component
@@ -354,16 +486,39 @@ dist.nest <- dist.prop%>%
 
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ trt + trt:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt + trt:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 #dominance of community pre-treatment
 dist.dom <- dist.nest%>%
@@ -372,16 +527,39 @@ dist.dom <- dist.nest%>%
 
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.bray ~ trt + trt:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 mod <- feols(mean_dist.jaccard ~ trt + trt:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
-
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
 
 
 

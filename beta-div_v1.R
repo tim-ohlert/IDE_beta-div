@@ -66,7 +66,7 @@ dominance <- cover_ppt.1%>%
           group_by(site_code, block, plot, subplot)%>%
           dplyr::summarize(dominance = max(max_cover)/sum(max_cover) )%>%
           group_by(site_code)%>%
-          dplyr::summarize(bc_dominance = mean(dominance))
+          dplyr::summarize(bp_dominance = mean(dominance))
           
   
 #number of replicates, start by requiring at least 5 replicates
@@ -370,16 +370,16 @@ dist.dom <- dist.nest%>%
   left_join(dominance, by = "site_code")
 
 
-mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
 
-mod <- feols(mean_dist.bray ~ trt + trt:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+mod <- feols(mean_dist.bray ~ trt + trt:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
 
-mod <- feols(mean_dist.jaccard ~ trt + trt:bc_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+mod <- feols(mean_dist.jaccard ~ trt + trt:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
 
 

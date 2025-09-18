@@ -37,7 +37,8 @@ soil_variation <- soil%>%
 
 #cover data
 cover_ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-19.csv")%>%
-          subset(habitat.type == "Grassland")
+          #subset(habitat.type == "Grassland")%>%
+          subset(habitat.type != "Forest")
 info_df <- cover_ppt.1%>%
           dplyr::select(site_code, map, habitat.type)%>%
           unique()
@@ -213,7 +214,7 @@ bray <- data.frame(metric = "Bray", intercept = mean(mod$sumFE), slope = coeftes
 
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
-summary(mod)coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+#summary(mod)coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
@@ -221,16 +222,34 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
-
+#bray
 bray%>%
-  rbind(jac)%>%
-  ggplot(aes( group = metric))+
-  ylim(0,0.6)+
+  ggplot(aes( ))+
+  ylim(0,0.7)+
   xlim(-1,1)+
-  geom_abline(aes(slope = slope, intercept = intercept))+
-  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted")+
-  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted")+
+  geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type))+
+  geom_vline(xintercept = 0)+
+  xlab("Relative precipitation")+
+  ylab("Beta diversity (Bray-Curtis)")+
   theme_base()
+
+#jaccard
+jac%>%
+  ggplot(aes( ))+
+  ylim(0,0.8)+
+  xlim(-1,1)+
+  geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type))+
+  geom_vline(xintercept = 0)+
+  xlab("Relative precipitation")+
+  ylab("Beta diversity (Jaccard)")+
+  theme_base()
+
 
 
 ##Over time
@@ -339,6 +358,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+bray_map_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
@@ -348,6 +368,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+jac_map_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.bray ~ trt + trt:MAP |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.climate)
 summary(mod)
@@ -379,6 +400,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+bray_gam_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
@@ -388,6 +410,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+jac_gam_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.bray ~ trt + trt:gamma_rich |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.gamma)
 summary(mod)
@@ -419,6 +442,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+bray_ann_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
@@ -428,6 +452,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+jac_ann_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.bray ~ trt + trt:PctAnnual |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.prop)
 summary(mod)
@@ -492,6 +517,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+bray_nest_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
@@ -501,6 +527,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+jac_nest_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.bray ~ trt + trt:proportion.nestedness |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.nest)
 summary(mod)
@@ -533,6 +560,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+bray_dom_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
@@ -542,6 +570,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+jac_dom_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
 
 mod <- feols(mean_dist.bray ~ trt + trt:bp_dominance |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
 summary(mod)
@@ -562,4 +591,26 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
 
+
+###Figures of moderator effects
+bray_map_stats%>%
+  rbind(bray_gam_stats)%>%
+  rbind(bray_ann_stats)%>%
+  rbind(bray_nest_stats)%>%
+  rbind(bray_dom_stats)%>%
+ggplot(aes(moderator, estimate))+
+  geom_pointrange(aes(ymin = estimate-std.error, ymax = estimate+std.error))+
+  geom_hline(yintercept = 0)+
+  theme_base()
+
+
+jac_map_stats%>%
+  rbind(jac_gam_stats)%>%
+  rbind(jac_ann_stats)%>%
+  rbind(jac_nest_stats)%>%
+  rbind(jac_dom_stats)%>%
+  ggplot(aes(moderator, estimate))+
+  geom_pointrange(aes(ymin = estimate-std.error, ymax = estimate+std.error))+
+  geom_hline(yintercept = 0)+
+  theme_base()
 

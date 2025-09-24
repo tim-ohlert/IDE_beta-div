@@ -38,7 +38,10 @@ soil_variation <- soil%>%
 #cover data
 cover_ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-19.csv")%>%
           #subset(habitat.type == "Grassland")%>%
-          subset(habitat.type != "Forest")
+          subset(habitat.type != "Forest")%>%
+          mutate(block = ifelse(site_code == "allmendo.ch", "2", block))%>% #grouping allmend sites
+          mutate(site_code = ifelse(site_code == "allmendo.ch", "allmendb.ch", site_code))
+
 info_df <- cover_ppt.1%>%
           dplyr::select(site_code, map, habitat.type)%>%
           unique()

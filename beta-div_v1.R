@@ -242,7 +242,7 @@ bray%>%
 #jaccard
 jac%>%
   ggplot(aes( ))+
-  ylim(0,0.8)+
+  #ylim(0,0.8)+
   xlim(-1,1)+
   geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+

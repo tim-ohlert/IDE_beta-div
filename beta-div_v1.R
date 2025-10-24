@@ -594,6 +594,13 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
+ggplot(dist.dom, aes(bp_dominance,mean_dist.jaccard,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("Dominance")+
+  ylab("Jaccard distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
 
 
 ###Figures of moderator effects

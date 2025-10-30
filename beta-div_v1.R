@@ -710,7 +710,7 @@ ggplot(dist.nest, aes(proportion.nestedness,mean_dist.bray,color = trt))+
   scale_color_manual(values = c("black", "#D35721"))+
   theme_base()
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/nest_jac.pdf",
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/nest_bray.pdf",
         plot = last_plot(),
         device = "pdf",
         path = NULL,
@@ -739,7 +739,7 @@ ggplot(dist.nest, aes(proportion.nestedness,mean_dist.jaccard,color = trt))+
   scale_color_manual(values = c("black", "#D35721"))+
   theme_base()
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/nest_bray.pdf",
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/nest_jac.pdf",
         plot = last_plot(),
         device = "pdf",
         path = NULL,

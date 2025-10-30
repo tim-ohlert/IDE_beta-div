@@ -239,6 +239,18 @@ bray%>%
   ylab("Beta diversity (Bray-Curtis)")+
   theme_base()
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/relprecip_bray.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 5.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
 #jaccard
 jac%>%
   ggplot(aes( ))+
@@ -253,7 +265,17 @@ jac%>%
   ylab("Beta diversity (Jaccard)")+
   theme_base()
 
-
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/relprecip_jac.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 5.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 ##Over time
 mod <- feols(mean_dist.bray ~ trt * n_treat_years|site_code, cluster = ~site_code, data = dist.df)

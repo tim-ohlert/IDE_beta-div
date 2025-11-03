@@ -233,7 +233,7 @@ bray%>%
   geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type))+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
   geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Bray-Curtis)")+
@@ -259,7 +259,7 @@ jac%>%
   geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type))+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
   geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Jaccard)")+
@@ -288,7 +288,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
 ggplot(dist.df, aes(n_treat_years, mean_dist.bray, color = trt))+
-  geom_point()+
+  geom_point(shape = 1)+
   geom_smooth(method = "lm")+
   xlab("Treatment year")+
   ylab("Bray distance")+
@@ -317,7 +317,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
 ggplot(dist.df, aes(n_treat_years, mean_dist.jaccard, color = trt))+
-  geom_point()+
+  geom_point(shape = 1)+
   geom_smooth(method = "lm")+
   xlab("Treatment year")+
   ylab("Jaccard distance")+

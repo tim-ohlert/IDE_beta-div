@@ -859,8 +859,98 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/dom_jac.pdf",
 )
 
 
+#####Site ANPP
+anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>%
+  subset(n_treat_years == 0)%>%
+  dplyr::select(site_code, mass)%>%
+  group_by(site_code)%>%
+  dplyr::summarise(anpp = mean(mass))
 
-#soil heterogeneity
+dist.anpp <- dist.nest%>%
+  left_join(anpp, by = "site_code")
+
+
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1*anpp |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.anpp)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+bray_anpp_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1*anpp |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.anpp)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+jac_anpp_stats <- data.frame(moderator = rownames(coeftest(mod, vcov = NeweyWest(mod)))[2], estimate = coeftest(mod, vcov = NeweyWest(mod))[2,1], std.error = coeftest(mod, vcov = NeweyWest(mod))[2,2], t.value = coeftest(mod, vcov = NeweyWest(mod))[2,3], p.value = coeftest(mod, vcov = NeweyWest(mod))[2,4])
+
+mod <- feols(mean_dist.bray ~ trt + trt*anpp |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.anpp)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.anpp, aes(anpp,mean_dist.bray,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("ANPP")+
+  ylab("Bray distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/anpp_bray.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+mod <- feols(mean_dist.jaccard ~ trt + trt*anpp |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.anpp)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.anpp, aes(anpp,mean_dist.jaccard,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("ANPP")+
+  ylab("Jaccard distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/anpp_jac.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+###soil heterogeneity
+#first ph
 mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1*ph_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
 coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
@@ -937,6 +1027,218 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/ph_jac.pdf",
         dpi = 600,
         limitsize = TRUE
 )
+
+
+#second N variability
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1*n_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1*n_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+mod <- feols(mean_dist.bray ~ trt + trt*n_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.dom, aes(n_var,mean_dist.bray,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("N variation")+
+  ylab("Bray distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/n_bray.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+mod <- feols(mean_dist.jaccard ~ trt + trt*n_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.dom, aes(n_var,mean_dist.jaccard,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("N variation")+
+  ylab("Jaccard distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/n_jac.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+#Third P variability
+mod <- feols(mean_dist.bray ~ relprecip.1 + relprecip.1*p_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1 + relprecip.1*p_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+mod <- feols(mean_dist.bray ~ trt + trt*p_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.dom, aes(p_var,mean_dist.bray,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("P variation")+
+  ylab("Bray distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/p_bray.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+mod <- feols(mean_dist.jaccard ~ trt + trt*p_var |as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.dom)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+
+ggplot(dist.dom, aes(p_var,mean_dist.jaccard,color = trt))+
+  geom_point(shape = 1)+
+  geom_smooth(method = "lm")+
+  xlab("N variation")+
+  ylab("Jaccard distance")+
+  scale_color_manual(values = c("black", "#D35721"))+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/p_jac.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
+################################
+########Turnover and nestedness as response variables
+#calculate these for each site/treatment/year
+#loop
+site_year_trt_vector <- cover_ppt%>%
+                        unite(col = site_year_trt, site_code, n_treat_years, trt, sep = "::")%>%
+                        dplyr::select(site_year_trt)%>%
+                        unique()
+  
+  
+
+turn_nest_master <- {}
+
+for(i in 1:length(site_year_trt_vector)) {
+  
+  temp.df <- cover_ppt%>%
+    unite(col = "site_year_trt", site_code, n_treat_years, trt, sep = "::", remove = FALSE)%>%
+  subset( site_year_trt == site_year_trt_vector[i])
+  
+  temp.wide <- temp.df%>%
+    dplyr::select(site_code, block, plot, subplot, Taxon, max_cover)%>%
+    mutate(max_cover = ifelse(max_cover>0, 1, 0))%>%
+    pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
+  
+  temp.beta <- beta.multi(temp.wide[7:ncol(temp.wide)]) 
+  #SNE is nestedness w/ sorensen
+  #SOR is total sorensen
+  
+  turn_nest_temp <- data.frame(site_code = site_year_trt_vector[i], nestedness = temp.beta$beta.SNE, total = temp.beta$beta.SOR, proportion.nestedness = temp.beta$beta.SNE/temp.beta$beta.SOR)
+  
+  
+  turn_nest_master <- rbind(turn_nest_master, turn_nest_temp )
+  rm(temp.df, temp.wide, temp.beta, turn_nest_temp)
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ###Figures of moderator effects

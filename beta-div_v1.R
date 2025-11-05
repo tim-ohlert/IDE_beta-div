@@ -1194,8 +1194,14 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/p_jac.pdf",
 #loop
 site_year_trt_vector <- cover_ppt%>%
                         unite(col = site_year_trt, site_code, n_treat_years, trt, sep = "::")%>%
-                        dplyr::select(site_year_trt)%>%
-                        unique()
+  distinct(site_year_trt) %>%
+  pull(site_year_trt)
+
+
+#%>%
+ #                       dplyr::select(site_year_trt)%>%
+  #                      unique()%>%
+   #                     as.vector()
   
   
 
@@ -1204,19 +1210,19 @@ turn_nest_master <- {}
 for(i in 1:length(site_year_trt_vector)) {
   
   temp.df <- cover_ppt%>%
-    unite(col = "site_year_trt", site_code, n_treat_years, trt, sep = "::", remove = FALSE)%>%
+    unite(col = "site_year_trt", site_code, n_treat_years, trt, sep = "::", remove = TRUE)%>%
   subset( site_year_trt == site_year_trt_vector[i])
   
   temp.wide <- temp.df%>%
-    dplyr::select(site_code, block, plot, subplot, Taxon, max_cover)%>%
+    dplyr::select(site_year_trt, block, plot, subplot, Taxon, max_cover)%>%
     mutate(max_cover = ifelse(max_cover>0, 1, 0))%>%
     pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
   
-  temp.beta <- beta.multi(temp.wide[7:ncol(temp.wide)]) 
+  temp.beta <- beta.multi(temp.wide[5:ncol(temp.wide)]) 
   #SNE is nestedness w/ sorensen
   #SOR is total sorensen
   
-  turn_nest_temp <- data.frame(site_code = site_year_trt_vector[i], nestedness = temp.beta$beta.SNE, total = temp.beta$beta.SOR, proportion.nestedness = temp.beta$beta.SNE/temp.beta$beta.SOR)
+  turn_nest_temp <- data.frame(site_year_trt = site_year_trt_vector[i], nestedness = temp.beta$beta.SNE, total = temp.beta$beta.SOR, proportion.nestedness = temp.beta$beta.SNE/temp.beta$beta.SOR)
   
   
   turn_nest_master <- rbind(turn_nest_master, turn_nest_temp )
@@ -1225,9 +1231,31 @@ for(i in 1:length(site_year_trt_vector)) {
 }
 
 
+turn_nest <- turn_nest_master%>%
+  separate(site_year_trt, c("site_code", "n_treat_years", "trt"), sep = "::")%>%
+  mutate(n_treat_years = as.numeric(n_treat_years))%>%
+  left_join(dist.df, by = c("site_code", "n_treat_years", "trt"))
 
+mod <- feols(proportion.nestedness ~ trt|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = turn_nest)
+summary(mod, vcov = vcovHAC, cluster = ~site_code + n_treat_years)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+bray <- data.frame(metric = "Bray", mean = coeftest(mod, vcov = NeweyWest(mod))[1], se = coeftest(mod, vcov = NeweyWest(mod))[2])
 
-
+##relprecip##relprecipcluster = 
+mod <- feols(proportion.nestedness ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = turn_nest)
+summary(mod)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
+coeftest(mod, vcov = NeweyWest(mod))
+bray <- data.frame(metric = "Bray", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
 
 
 

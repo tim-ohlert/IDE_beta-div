@@ -9,6 +9,9 @@ library(sandwich)
 library(RcmdrMisc)
 library(lmtest)
 library(ggthemes)
+library(kernelshap)   #  General SHAP
+library(shapviz)      #  SHAP plots
+library(grf)
 
 
 #site info
@@ -39,6 +42,7 @@ soil_variation <- soil%>%
 cover_ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2025-10-20.csv")%>%
           #subset(habitat.type == "Grassland")%>%
           subset(habitat.type != "Forest")%>%
+          subset(site_code != "wildflower.us")%>%#can be added in later once precip data is incorporated for wildflower.us
           mutate(block = ifelse(site_code == "allmendo.ch", "2", block))%>% #grouping allmend sites
           mutate(site_code = ifelse(site_code == "allmendo.ch", "allmendb.ch", site_code))
 
@@ -354,59 +358,105 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
-mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 |site_code, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
+###Precip lags with causal forest
+# As outcomes we'll look at the number of correct answers.
+Y <- dist.df$mean_dist.bray
+#W <- dist.df%>%
+#  ungroup()%>%
+#  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+#  pull(trt_num)
+W <- dist.df$relprecip.1
+#X <- dist.df%>%
+#  ungroup()%>%
+#  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
+X <- dist.df%>%
+  ungroup()%>%
+  dplyr::select(relprecip.2,relprecip.3,relprecip.4)
 
-mod <- feols(mean_dist.bray ~ relprecip.1 * relprecip.2 * relprecip.3 |site_code, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
+rf <- regression_forest(X, W, num.trees = 5000)
+p.hat <- predict(rf)$predictions
 
-mod <- feols(mean_dist.bray ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
+hist(p.hat)
 
-mod <- feols(mean_dist.jaccard ~ multyear.relprecip, cluster = ~site_code, data = dist.df)
-summary(mod)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
-coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
-coeftest(mod, vcov = NeweyWest(mod))
+Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
+Y.hat <- predict(Y.forest)$predictions
+
+varimp.Y <- variable_importance(Y.forest)
+
+# Keep the top 10 variables for CATE estimation
+keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:3]]
+keep
+#"relprecip.1" "relprecip.2" "relprecip.3" "relprecip.4"     
+
+X.cf <- X[, keep]
+W.hat <- 0.5
+
+# Set aside the first half of the data for training and the second for evaluation.
+# (Note that the results may change depending on which samples we hold out for training/evaluation)
+train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
+
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+
+average_treatment_effect(eval.forest)
+#estimate     std.err 
+#0.003091148 0.016592967 
+
+varimp <- variable_importance(eval.forest)
+ranked.vars <- order(varimp, decreasing = TRUE)
+colnames(X.cf)[ranked.vars[1:3]]
+#relprecip.4" "relprecip.3" "relprecip.2" "relprecip.1"
+
+rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+#rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
+
+plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
+#plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+
+#xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
+imp <- sort(setNames(variable_importance(eval.forest), keep))
+#par(mai = c(0.7, 2, 0.2, 0.2))
+barplot(imp, horiz = TRUE, las = 1, col = "orange")
+
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+library(hstats)
+pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
+)))
+library(patchwork)
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  #  ylim(c(-0.11, -0.06)) &
+  ylab("Treatment effect")
+
+H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
+plot(H)
+#partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
+ # plot()
+
+partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+
+# Explaining one CATE
+kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+           pred_fun = pred_fun) |> 
+  shapviz() |> 
+  sv_waterfall() +
+  xlab("Prediction")
+
+# Explaining all CATEs globally
+system.time(  # 13 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
+sv_importance(shap_values, kind = "bee")
+#sv_dependence(shap_values, v = xvars) +
+#  plot_layout(ncol = 3) &
+#  ylim(c(-0.04, 0.03))
 
 
 ##################
@@ -866,7 +916,7 @@ anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.
   group_by(site_code)%>%
   dplyr::summarise(anpp = mean(mass))
 
-dist.anpp <- dist.nest%>%
+dist.anpp <- dist.dom%>%
   left_join(anpp, by = "site_code")
 
 
@@ -1185,6 +1235,146 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/p_jac.pdf",
         dpi = 600,
         limitsize = TRUE
 )
+
+
+
+###Causal forest for moderators
+# As outcomes we'll look at the number of correct answers.
+Y <- dist.anpp$mean_dist.bray
+W <- dist.anpp%>%
+  ungroup()%>%
+  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+  pull(trt_num)
+#W <- dist.anpp$relprecip.1
+#X <- dist.anpp%>%
+#  ungroup()%>%
+#  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
+X <- dist.anpp%>%
+  ungroup()%>%
+  dplyr::select(map,cv_ppt_intra, cv_ppt_inter, seasonality_index, aridity_index,MAT, gamma_rich, PctAnnual, PctGrass, proportion.nestedness, bp_dominance, anpp)
+
+rf <- regression_forest(X, W, num.trees = 5000)
+p.hat <- predict(rf)$predictions
+
+hist(p.hat)
+
+Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
+Y.hat <- predict(Y.forest)$predictions
+
+varimp.Y <- variable_importance(Y.forest)
+
+# Keep the top 10 variables for CATE estimation
+keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
+keep
+#[1] "PctAnnual"             "MAT"                   "PctGrass"             
+#[4] "cv_ppt_inter"          "bp_dominance"          "proportion.nestedness"
+#[7] "gamma_rich"            "aridity_index"         "anpp"                 
+#[10] "map"         
+
+X.cf <- X[, keep]
+W.hat <- 0.5
+
+# Set aside the first half of the data for training and the second for evaluation.
+# (Note that the results may change depending on which samples we hold out for training/evaluation)
+train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
+
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+
+average_treatment_effect(eval.forest)
+#estimate    std.err 
+#0.01858178 0.01068278 
+
+varimp <- variable_importance(eval.forest)
+ranked.vars <- order(varimp, decreasing = TRUE)
+colnames(X.cf)[ranked.vars[1:10]]
+#[1] "PctGrass"              "gamma_rich"            "bp_dominance"         
+#[4] "map"                   "aridity_index"         "cv_ppt_inter"         
+#[7] "PctAnnual"             "anpp"                  "MAT"                  
+#[10] "proportion.nestedness"
+
+rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+#rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
+
+plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
+#plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+
+#xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
+imp <- sort(setNames(variable_importance(eval.forest), keep))
+#par(mai = c(0.7, 2, 0.2, 0.2))
+barplot(imp, horiz = TRUE, las = 1, col = "orange")
+
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+library(hstats)
+pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
+)))
+library(patchwork)
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  #  ylim(c(-0.11, -0.06)) &
+  ylab("Treatment effect")
+
+#H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
+#plot(H)
+#partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
+# plot()
+
+partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+
+# Explaining one CATE
+kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+           pred_fun = pred_fun) |> 
+  shapviz() |> 
+  sv_waterfall() +
+  xlab("Prediction")
+
+# Explaining all CATEs globally
+system.time(  # 13 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
+sv_importance(shap_values, kind = "bee")
+#sv_dependence(shap_values, v = xvars) +
+#  plot_layout(ncol = 3) &
+#  ylim(c(-0.04, 0.03))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -361,19 +361,31 @@ coeftest(mod, vcov = NeweyWest(mod))
 
 
 ###Precip lags with causal forest
+drt.sev <- dist.df%>%
+  ungroup()%>%
+            subset(trt == "Drought")%>%
+            dplyr::select(site_code, n_treat_years, relprecip.1, relprecip.2, relprecip.3, relprecip.4)%>%
+            group_by(site_code, n_treat_years)%>%
+            dplyr::summarize(drtsev.1 = mean(relprecip.1),
+                             drtsev.2 = mean(relprecip.2),
+                             drtsev.3 = mean(relprecip.3),
+                             drtsev.4 = mean(relprecip.4))
+
+
 # As outcomes we'll look at the number of correct answers.
 Y <- dist.df$mean_dist.bray
-#W <- dist.df%>%
-#  ungroup()%>%
-#  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
-#  pull(trt_num)
-W <- dist.df$relprecip.1
+W <- dist.df%>%
+  ungroup()%>%
+  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+  pull(trt_num)
+#W <- dist.df$relprecip.1
 #X <- dist.df%>%
 #  ungroup()%>%
 #  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
 X <- dist.df%>%
   ungroup()%>%
-  dplyr::select(relprecip.2,relprecip.3,relprecip.4)
+  left_join(drt.sev, by = c("site_code", "n_treat_years"))%>%
+  dplyr::select(drtsev.1,drtsev.2,drtsev.3,drtsev.4)
 
 rf <- regression_forest(X, W, num.trees = 5000)
 p.hat <- predict(rf)$predictions
@@ -386,7 +398,7 @@ Y.hat <- predict(Y.forest)$predictions
 varimp.Y <- variable_importance(Y.forest)
 
 # Keep the top 10 variables for CATE estimation
-keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:3]]
+keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
 keep
 #"relprecip.1" "relprecip.2" "relprecip.3" "relprecip.4"     
 
@@ -408,7 +420,7 @@ average_treatment_effect(eval.forest)
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X.cf)[ranked.vars[1:3]]
+colnames(X.cf)[ranked.vars[1:4]]
 #relprecip.4" "relprecip.3" "relprecip.2" "relprecip.1"
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
@@ -1341,40 +1353,6 @@ sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

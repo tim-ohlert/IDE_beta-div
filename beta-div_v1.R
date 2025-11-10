@@ -234,9 +234,9 @@ bray%>%
   ggplot(aes( ))+
   ylim(0,0.7)+
   xlim(-1,1)+
-  geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
-  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
-  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
+  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
+  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
   geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
   geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
@@ -260,9 +260,9 @@ jac%>%
   ggplot(aes( ))+
   #ylim(0,0.8)+
   xlim(-1,1)+
-  geom_abline(aes(slope = slope, intercept = intercept), color = "blue")+
-  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "blue")+
-  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "blue")+
+  geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
+  geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
+  geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
   geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
   geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
@@ -400,7 +400,7 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
 keep
-#"relprecip.1" "relprecip.2" "relprecip.3" "relprecip.4"     
+#[1] "drtsev.2" "drtsev.1" "drtsev.3" "drtsev.4"     
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -416,12 +416,12 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 #estimate     std.err 
-#0.003091148 0.016592967 
+#0.009602679 0.016067931  
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:4]]
-#relprecip.4" "relprecip.3" "relprecip.2" "relprecip.1"
+#[1] "drtsev.1" "drtsev.2" "drtsev.3" "drtsev.4"
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))

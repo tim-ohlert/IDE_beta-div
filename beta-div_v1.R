@@ -1308,10 +1308,7 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
 keep
-#[1] "PctAnnual"             "MAT"                   "PctGrass"             
-#[4] "cv_ppt_inter"          "bp_dominance"          "proportion.nestedness"
-#[7] "gamma_rich"            "aridity_index"         "anpp"                 
-#[10] "map"         
+# [1] "PctAnnual"             "MAT"                   "PctGrass"             #[4] "cv_ppt_inter"          "bp_dominance"          "proportion.nestedness" [7] "gamma_rich"            "aridity_index"         "anpp"              [10] "map"        
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -1326,16 +1323,13 @@ tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
 
 average_treatment_effect(eval.forest)
-#estimate    std.err 
-#0.01858178 0.01068278 
+# estimate    std.err 
+#0.02831036 0.01038584 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:10]]
-#[1] "PctGrass"              "gamma_rich"            "bp_dominance"         
-#[4] "map"                   "aridity_index"         "cv_ppt_inter"         
-#[7] "PctAnnual"             "anpp"                  "MAT"                  
-#[10] "proportion.nestedness"
+#[1] "aridity_index"         "gamma_rich"            "PctGrass"            "MAT"                   "anpp"                  "proportion.nestedness" "PctAnnual"             "cv_ppt_inter"          "map"                  "bp_dominance"     
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
@@ -1347,6 +1341,25 @@ plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negativ
 imp <- sort(setNames(variable_importance(eval.forest), keep))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
+ggplot(rownames_to_column(data.frame(imp)),aes(rowname,imp))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ylab("Importance")+
+  xlab("")+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderators_variable-importance.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
 
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions

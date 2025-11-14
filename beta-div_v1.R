@@ -13,6 +13,7 @@ library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 library(grf)
 
+set.seed(67)
 
 #site info
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")
@@ -239,6 +240,7 @@ bray%>%
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
   geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
   geom_vline(xintercept = 0)+
+  scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Bray-Curtis)")+
   theme_base()
@@ -264,6 +266,7 @@ jac%>%
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
   geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
+  scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
   geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Jaccard)")+
@@ -400,7 +403,7 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
 keep
-#[1] "drtsev.2" "drtsev.1" "drtsev.3" "drtsev.4"     
+#[1] "drtsev.2" "drtsev.1" "drtsev.3" "drtsev.4"
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -415,8 +418,8 @@ tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
 
 average_treatment_effect(eval.forest)
-#estimate     std.err 
-#0.009602679 0.016067931  
+# estimate    std.err 
+#0.02196658 0.01561603 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
@@ -433,6 +436,26 @@ plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negativ
 imp <- sort(setNames(variable_importance(eval.forest), keep))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
+ggplot(rownames_to_column(data.frame(imp)),aes(rowname,imp))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ylab("Importance")+
+  xlab("")+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_variable-importance.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4.5,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
 
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
@@ -441,9 +464,15 @@ library(hstats)
 pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
 )))
 library(patchwork)
+
+#pdf(file = "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_treatmenteffects.pdf",   # The directory you want to save the file in
+#    width = 10, # The width of the plot in inches
+#    height = 4) 
+
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")
+
 
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
 plot(H)
@@ -458,6 +487,7 @@ kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X,
   shapviz() |> 
   sv_waterfall() +
   xlab("Prediction")
+
 
 # Explaining all CATEs globally
 system.time(  # 13 min

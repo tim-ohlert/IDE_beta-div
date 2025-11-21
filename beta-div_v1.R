@@ -473,6 +473,22 @@ wrap_plots(pdps, guides = "collect", ncol = 5) &
   #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_treatmenteffects_predictions.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 12,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
+
+
 
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
 plot(H)

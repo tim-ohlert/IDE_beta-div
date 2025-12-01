@@ -235,11 +235,11 @@ bray%>%
   ggplot(aes( ))+
   ylim(0,0.7)+
   xlim(-1,1)+
+  geom_vline(xintercept = 0)+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
   geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
-  geom_vline(xintercept = 0)+
   scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Bray-Curtis)")+
@@ -262,12 +262,12 @@ jac%>%
   ggplot(aes( ))+
   #ylim(0,0.8)+
   xlim(-1,1)+
+  geom_vline(xintercept = 0)+
+  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
   geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
   scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
-  geom_vline(xintercept = 0)+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Jaccard)")+
   theme_base()
@@ -436,10 +436,10 @@ plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negativ
 imp <- sort(setNames(variable_importance(eval.forest), keep))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
-ggplot(rownames_to_column(data.frame(imp)),aes(rowname,imp))+
+ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, drtsev.1 = "Drought severity 1",drtsev.2 = "Drought severity 2",drtsev.3 = "Drought severity 3",drtsev.4 = "Drought severity 4")),aes(rowname,imp))+
   geom_bar(stat="identity")+
   coord_flip()+
-  ylab("Importance")+
+  ylab("Variable importance")+
   xlab("")+
   theme_base()
 
@@ -448,7 +448,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_variable-im
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 4.5,
+        width = 4,
         height = 3,
         units = c("in"),
         dpi = 600,
@@ -469,7 +469,8 @@ library(patchwork)
 #    width = 10, # The width of the plot in inches
 #    height = 4) 
 
-wrap_plots(pdps, guides = "collect", ncol = 5) &
+
+wrap_plots(list(pdps[[2]],pdps[[1]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) &
   #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")
 
@@ -1357,10 +1358,10 @@ plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negativ
 imp <- sort(setNames(variable_importance(eval.forest), keep))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
-ggplot(rownames_to_column(data.frame(imp)),aes(rowname,imp))+
+ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, proportion.nestedness = "Proportion nestedness",PctGrass = "% grass",PctAnnual = "% annual",MAT = "Mean annual temperature",map = "Mean annual precipitation",gamma_rich = "Gamma richness",cv_ppt_inter = "Interannual precipitaiton variability",bp_dominance = "Berger-Parker Dominance",aridity_index = "Aridity",anpp = "Site ANPP")),aes(fct_reorder(rowname,imp),imp))+
   geom_bar(stat="identity")+
   coord_flip()+
-  ylab("Importance")+
+  ylab("Variable Importance")+
   xlab("")+
   theme_base()
 
@@ -1369,7 +1370,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderators_vari
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 4.5,
+        width = 6,
         height = 3,
         units = c("in"),
         dpi = 600,
@@ -1385,8 +1386,22 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  #  ylim(c(-0.11, -0.06)) &
+      #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_treatmenteffects_predictions.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
 
 #H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
 #plot(H)

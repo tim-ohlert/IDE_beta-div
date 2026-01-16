@@ -294,12 +294,18 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
-ggplot(dist.df, aes(n_treat_years, mean_dist.bray, color = trt))+
-  geom_point(shape = 1)+
+dist.df%>%
+  dplyr::select(site_code, trt,n_treat_years, mean_dist.bray)%>%
+  unique()%>%
+  pivot_wider(names_from = "trt", values_from = mean_dist.bray)%>%
+  mutate(diff_bray = Drought-Control)%>%
+ggplot( aes(n_treat_years, diff_bray))+
+#  geom_point(shape = 1)+
+  ylim(0,0.2)+
   geom_smooth(method = "lm")+
   xlab("Treatment year")+
-  ylab("Bray distance")+
-  scale_color_manual(values = c("black", "#D35721"))+
+  ylab("Bray distance (Drought-Control")+
+#  scale_color_manual(values = c("black", "#D35721"))+
   theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/time_bray.pdf",
@@ -323,12 +329,18 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 
-ggplot(dist.df, aes(n_treat_years, mean_dist.jaccard, color = trt))+
-  geom_point(shape = 1)+
+dist.df%>%
+  dplyr::select(site_code, trt,n_treat_years, mean_dist.jaccard)%>%
+  unique()%>%
+  pivot_wider(names_from = "trt", values_from = mean_dist.jaccard)%>%
+  mutate(diff_jaccard = Drought-Control)%>%
+  ggplot( aes(n_treat_years, diff_jaccard))+
+  #  geom_point(shape = 1)+
+  ylim(0,0.2)+
   geom_smooth(method = "lm")+
   xlab("Treatment year")+
-  ylab("Jaccard distance")+
-  scale_color_manual(values = c("black", "#D35721"))+
+  ylab("Jaccard distance (Drought-Control")+
+  #  scale_color_manual(values = c("black", "#D35721"))+
   theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/time_jac.pdf",

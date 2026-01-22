@@ -77,6 +77,16 @@ dominance <- cover_ppt.1%>%
           group_by(site_code)%>%
           dplyr::summarize(bp_dominance = mean(dominance))
           
+
+extremeyrs <- subset(cover_ppt.1, trt == "Control")%>%
+  dplyr::select(site_code, n_treat_years, year, ppt.1, map)%>%
+  unique() %>%
+  mutate(ppt.minus.map=ppt.1-map,
+         e.n=ifelse(n_treat_years <1, NA,
+                    ifelse(ppt.minus.map>0, "nominal", "extreme"))) %>%
+  dplyr::select(site_code, year, n_treat_years, e.n)%>%
+  unique()
+
   
 #number of replicates, start by requiring at least 5 replicates
 num_replicates <- cover_ppt.1%>%
@@ -175,15 +185,37 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
 bray <- data.frame(metric = "Bray", mean = coeftest(mod, vcov = NeweyWest(mod))[1], se = coeftest(mod, vcov = NeweyWest(mod))[2])
 
+x <- ggpredict(mod, "trt")
+x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+ggplot(x, aes(x, predicted))+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+theme_base()
 
 
-#x <- ggpredict(mod, "trt")
+#bray simple treatment but with extremes
+dist.df.en <- left_join(dist.df, extremeyrs, by = c("site_code", "year", "n_treat_years") )%>%
+  mutate(set = ifelse(trt == "Control", "Control",
+                      ifelse(e.n == "extreme", "extreme", "nominal")))
 
-#ggplot(x, aes(x, predicted))+
-#  geom_pointrange(aes(ymin = predicted-std.error, ymax = predicted+std.error))
+mod <- feols(mean_dist.bray ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = subset(dist.df.en, trt != "Control"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+mod <- feols(mean_dist.bray ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df.en)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
+
+control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
+
+x <- ggpredict(mod, "set")
+x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+ggplot(x, aes(x, predicted))+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+  theme_base()
+
+
+#jaccard
 
 mod <- feols(mean_dist.jaccard ~ trt|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
 summary(mod)
@@ -194,18 +226,31 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
+control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
 jac <- data.frame(metric = "Jaccard", mean = coeftest(mod, vcov = NeweyWest(mod))[1], se = coeftest(mod, vcov = NeweyWest(mod))[2])
 
-
-bray%>%
-  rbind(jac)%>%
-ggplot(aes(metric, mean))+
-  geom_pointrange(aes(ymin = mean-se, ymax = mean+se))+
-  geom_hline(yintercept = 0)+
+x <- ggpredict(mod, "trt")
+x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+ggplot(x, aes(x, predicted))+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
   theme_base()
 
 
 
+#jaccard simple treatment but with extremes
+mod <- feols(mean_dist.jaccard ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = subset(dist.df.en, trt != "Control"))
+mod <- feols(mean_dist.jaccard ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df.en)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+
+control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
+library(emmeans)
+
+x <- ggpredict(mod, "set")
+x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+ggplot(x, aes(x, predicted))+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+  theme_base()
 
 
 
@@ -229,6 +274,16 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Parzen"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Tukey-Hanning"))
 coeftest(mod, vcov = NeweyWest(mod))
 jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeftest(mod, vcov = NeweyWest(mod))[1], se = sd(mod$sumFE)/sqrt(40))
+
+
+
+#habitat.type interaction
+mod <- feols(mean_dist.bray ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+
+mod <- feols(mean_dist.jaccard ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+
 
 #bray
 bray%>%

@@ -573,7 +573,8 @@ library(patchwork)
 
 wrap_plots(list(pdps[[2]],pdps[[1]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) &
   #  ylim(c(-0.11, -0.06)) &
-  ylab("Treatment effect")
+  ylab("Treatment effect")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_treatmenteffects_predictions.pdf",
         plot = last_plot(),
@@ -600,11 +601,11 @@ plot(H)
 partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 
 # Explaining all CATEs globally
@@ -612,12 +613,23 @@ system.time(  # 13 min
   ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
-sv_importance(shap_values)
-sv_importance(shap_values, kind = "bee")
+sv_importance(shap_values)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
-
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_treatmenteffects_shap.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 3,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 ##################
 ##site attribute moderators
@@ -1488,7 +1500,8 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
       #  ylim(c(-0.11, -0.06)) &
-  ylab("Treatment effect")
+  ylab("Treatment effect")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_treatmenteffects_predictions.pdf",
@@ -1512,23 +1525,34 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_treat
 partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 # Explaining all CATEs globally
 system.time(  # 13 min
   ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
-sv_importance(shap_values)
-sv_importance(shap_values, kind = "bee")
+sv_importance(shap_values)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
-
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_treatmenteffects_shap.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 3,
+        height = 4.5,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
 ################################

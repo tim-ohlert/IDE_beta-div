@@ -208,12 +208,30 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
 control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
 
+
 x <- ggpredict(mod, "set")
 x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+x$x <- factor(
+  x$x,
+  levels = c("Control", "nominal", "extreme")
+)
 ggplot(x, aes(x, predicted))+
   geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+  ylab("Beta diversity (Bray-Curtis)")+
+  xlab("")+
   theme_base()
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_bray.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 5.5,
+        height = 5,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 #jaccard
 
@@ -244,15 +262,31 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
 control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
-library(emmeans)
+
 
 x <- ggpredict(mod, "set")
 x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
+x$x <- factor(
+  x$x,
+  levels = c("Control", "nominal", "extreme")
+)
 ggplot(x, aes(x, predicted))+
   geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+  ylab("Beta diversity (Jaccard)")+
+  xlab("")+
   theme_base()
 
-
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_jac.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 5.5,
+        height = 5,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 ##relprecip##relprecipcluster = 
 mod <- feols(mean_dist.bray ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)

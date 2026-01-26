@@ -203,20 +203,24 @@ dist.df.en <- left_join(dist.df, extremeyrs, by = c("site_code", "year", "n_trea
 mod <- feols(mean_dist.bray ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = subset(dist.df.en, trt != "Control"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 mod <- feols(mean_dist.bray ~ set|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df.en)
+mean(predict(mod))
+#mod <- feols(mean_dist.bray ~ set+site_code|as.factor(n_treat_years), cluster = ~site_code, data = dist.df.en)
 coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
 
 control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
+#grand_mean <- mean(dist.df.en$mean_dist.bray)
 
-
-x <- ggpredict(mod, "set")
+x <- ggpredict(mod, "set", type = "fe")
 x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
-x$x <- factor(
+x$set <- factor(
   x$x,
   levels = c("Control", "nominal", "extreme")
 )
-ggplot(x, aes(x, predicted))+
-  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+x$predicted <- x$predicted + mean(fixef(mod)$site_code)
+ggplot(x, aes(set, predicted))+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = set), size = 1.5)+
+  geom_point(data = dist.df.en, aes(x= set, y = mean_dist.bray, color = as.factor(n_treat_years)), alpha = 0.1 , size = 2)+
   ylab("Beta diversity (Bray-Curtis)")+
   xlab("")+
   theme_base()
@@ -290,6 +294,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_jac.
 
 ##relprecip##relprecipcluster = 
 mod <- feols(mean_dist.bray ~ relprecip.1|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+mean(subset(dist.df, trt == "Control")$relprecip.1)
 summary(mod)
 coeftest(mod, vcov = kernHAC(mod, kernel = "Quadratic Spectral"))
 coeftest(mod, vcov = kernHAC(mod, kernel = "Truncated"))
@@ -312,11 +317,11 @@ jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeft
 
 
 #habitat.type interaction
-mod <- feols(mean_dist.bray ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+#mod <- feols(mean_dist.bray ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+#coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
-mod <- feols(mean_dist.jaccard ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
-coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
+#mod <- feols(mean_dist.jaccard ~ relprecip.1*habitat.type|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
+#coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 
 
 #bray

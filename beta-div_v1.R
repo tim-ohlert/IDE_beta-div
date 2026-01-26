@@ -274,6 +274,7 @@ x$x <- factor(
   x$x,
   levels = c("Control", "nominal", "extreme")
 )
+x$predicted <- x$predicted + mean(fixef(mod)$site_code)
 ggplot(x, aes(x, predicted))+
   geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
   ylab("Beta diversity (Jaccard)")+

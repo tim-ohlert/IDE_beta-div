@@ -211,7 +211,7 @@ coeftest(mod, vcov = kernHAC(mod, kernel = "Bartlett"))
 control_se <- sd(fixef(mod)$site_code)/sqrt(length(fixef(mod)$site_code))
 #grand_mean <- mean(dist.df.en$mean_dist.bray)
 
-x <- ggpredict(mod, "set", type = "fe")
+x <- ggpredict(mod, "set")
 x$std.error <- ifelse(x$x == "Control", control_se[1], x$std.error)
 x$set <- factor(
   x$x,
@@ -220,7 +220,7 @@ x$set <- factor(
 x$predicted <- x$predicted + mean(fixef(mod)$site_code)
 ggplot(x, aes(set, predicted))+
   geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = set), size = 1.5)+
-  geom_point(data = dist.df.en, aes(x= set, y = mean_dist.bray, color = as.factor(n_treat_years)), alpha = 0.1 , size = 2)+
+ # geom_point(data = dist.df.en, aes(x= set, y = mean_dist.bray, color = as.factor(n_treat_years)), alpha = 0.1 , size = 2)+
   ylab("Beta diversity (Bray-Curtis)")+
   xlab("")+
   theme_base()

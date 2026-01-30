@@ -175,6 +175,69 @@ dist.df <- left_join(mean.dist.df, info_df, by = "site_code")%>%
 
 
 
+
+
+# 0) Clean duplicates so each (site, trt, year) has one mean_dist.bray
+dist_clean <- dist.df %>%
+  distinct(site_code, trt, n_treat_years, mean_dist.bray)
+
+# 1) Keep only Controls
+ctrl <- dist_clean %>%
+  filter(trt == "Control")
+
+# 2) Compute the average pairwise site-to-site difference per year
+#    (within Control only)
+ctrl_year_pairdiff <- ctrl %>%
+  group_by(n_treat_years) %>%
+  summarise(
+    n_sites = n_distinct(site_code),
+    n_pairs = choose(n_sites, 2),
+    avg_pairwise_diff = {
+      v <- mean_dist.bray
+      if (length(v) < 2) NA_real_ else {
+        diffs <- combn(v, 2, function(x) abs(x[1] - x[2]))
+        mean(diffs, na.rm = TRUE)
+      }
+    },
+    .groups = "drop"
+  )
+
+mean(ctrl_year_pairdiff$avg_pairwise_diff) #this is the spatial unit change value for bray
+#0.13
+
+
+
+
+# 0) Clean duplicates so each (site, trt, year) has one mean_dist.jaccard
+dist_clean <- dist.df %>%
+  distinct(site_code, trt, n_treat_years, mean_dist.jaccard)
+
+# 1) Keep only Controls
+ctrl <- dist_clean %>%
+  filter(trt == "Control")
+
+# 2) Compute the average pairwise site-to-site difference per year
+#    (within Control only)
+ctrl_year_pairdiff <- ctrl %>%
+  group_by(n_treat_years) %>%
+  summarise(
+    n_sites = n_distinct(site_code),
+    n_pairs = choose(n_sites, 2),
+    avg_pairwise_diff = {
+      v <- mean_dist.jaccard
+      if (length(v) < 2) NA_real_ else {
+        diffs <- combn(v, 2, function(x) abs(x[1] - x[2]))
+        mean(diffs, na.rm = TRUE)
+      }
+    },
+    .groups = "drop"
+  )
+
+mean(ctrl_year_pairdiff$avg_pairwise_diff) #this is the spatial unit change value for  jaccard
+#0.11
+
+
+
 ##bray vs jaccard
 #simple treatment
 mod <- feols(mean_dist.bray ~ trt|as.factor(n_treat_years)+site_code, cluster = ~site_code, data = dist.df)
@@ -219,10 +282,11 @@ x$set <- factor(
 )
 x$predicted <- x$predicted + mean(fixef(mod)$site_code)
 ggplot(x, aes(set, predicted))+
-  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = set), size = 1.5)+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,color = set), size = 1.5)+
  # geom_point(data = dist.df.en, aes(x= set, y = mean_dist.bray, color = as.factor(n_treat_years)), alpha = 0.1 , size = 2)+
   ylab("Beta diversity (Bray-Curtis)")+
   xlab("")+
+  scale_color_manual(values = c("#5eb298","#e46c32","#5f4256"))+
   theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_bray.pdf",
@@ -276,9 +340,10 @@ x$x <- factor(
 )
 x$predicted <- x$predicted + mean(fixef(mod)$site_code)
 ggplot(x, aes(x, predicted))+
-  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,shape = x), size = 1.5)+
+  geom_pointrange(aes(ymax = predicted+std.error, ymin = predicted-std.error,color = x), size = 1.5)+
   ylab("Beta diversity (Jaccard)")+
   xlab("")+
+  scale_color_manual(values = c("#5eb298","#e46c32","#5f4256"))+
   theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_jac.pdf",
@@ -328,14 +393,14 @@ jac <- data.frame(metric = "Jaccard", intercept = mean(mod$sumFE), slope = coeft
 #bray
 bray%>%
   ggplot(aes( ))+
-  ylim(0,0.7)+
+  #ylim(0,0.75)+
   xlim(-1,1)+
   geom_vline(xintercept = 0)+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.bray, color = habitat.type),shape = 1)+
+  geom_point(data = dist.df.en, aes(x=relprecip.1, y=mean_dist.bray, color = set),shape = 1)+
   geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
-  scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
+  scale_color_manual(values = c("#5eb298","#5f4256","#e46c32"))+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Bray-Curtis)")+
   theme_base()
@@ -345,7 +410,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/relprecip_bray.
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 5.5,
+        width = 4.5,
         height = 3,
         units = c("in"),
         dpi = 600,
@@ -358,11 +423,11 @@ jac%>%
   #ylim(0,0.8)+
   xlim(-1,1)+
   geom_vline(xintercept = 0)+
-  geom_point(data = dist.df, aes(x=relprecip.1, y=mean_dist.jaccard, color = habitat.type),shape = 1)+
+  geom_point(data = dist.df.en, aes(x=relprecip.1, y=mean_dist.jaccard, color = set),shape = 1)+
   geom_abline(aes(slope = slope, intercept = intercept), color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept - se), linetype = "dotted", color = "black")+
   geom_abline(aes(slope = slope, intercept = intercept + se), linetype = "dotted", color = "black")+
-  scale_color_manual(values = c("purple4","forestgreen","goldenrod1"))+
+  scale_color_manual(values = c("#5eb298","#5f4256","#e46c32"))+
   xlab("Relative precipitation")+
   ylab("Beta diversity (Jaccard)")+
   theme_base()
@@ -372,7 +437,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/relprecip_jac.p
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 5.5,
+        width = 4.5,
         height = 3,
         units = c("in"),
         dpi = 600,

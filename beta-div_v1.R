@@ -295,7 +295,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_bray
         path = NULL,
         scale = 1,
         width = 5.5,
-        height = 5,
+        height = 4.5,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
@@ -352,7 +352,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/maineffect_jac.
         path = NULL,
         scale = 1,
         width = 5.5,
-        height = 5,
+        height = 4.5,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE

@@ -12,8 +12,7 @@ library(ggthemes)
 library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 library(grf)
-
-set.seed(67)
+library(ggplotify)
 
 #site info
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")
@@ -562,50 +561,70 @@ X <- dist.df%>%
   left_join(drt.sev, by = c("site_code", "n_treat_years"))%>%
   dplyr::select(drtsev.1,drtsev.2,drtsev.3,drtsev.4)
 
-rf <- regression_forest(X, W, num.trees = 5000)
-p.hat <- predict(rf)$predictions
+#rf <- regression_forest(X, W, num.trees = 5000)
+#p.hat <- predict(rf)$predictions
 
-hist(p.hat)
+#hist(p.hat)
 
-Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
-Y.hat <- predict(Y.forest)$predictions
+#Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
+#Y.hat <- predict(Y.forest)$predictions
 
-varimp.Y <- variable_importance(Y.forest)
+#varimp.Y <- variable_importance(Y.forest)
 
 # Keep the top 10 variables for CATE estimation
-keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
-keep
+#keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
+#keep
 #[1] "drtsev.2" "drtsev.1" "drtsev.3" "drtsev.4"
 
-X.cf <- X[, keep]
-W.hat <- 0.5
+#X.cf <- X[, keep]
+#W.hat <- 0.5
 
 # Set aside the first half of the data for training and the second for evaluation.
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
-train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+#train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
-tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
+#train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+#tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+eval.forest <- causal_forest(X, Y, W)
+tau.hat.eval <- predict(eval.forest, X)$predictions
 
 average_treatment_effect(eval.forest)
 # estimate    std.err 
-#0.02196658 0.01561603 
+#0.022 0.011 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X.cf)[ranked.vars[1:4]]
+colnames(X)[ranked.vars[1:4]]
 #[1] "drtsev.1" "drtsev.2" "drtsev.3" "drtsev.4"
 
-rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+#rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
 
-plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
+#plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
 
+
+rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(eval.forest, X)$predictions)
+as.ggplot(~plot(rate))
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/lag_TOC.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
 #xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
-imp <- sort(setNames(variable_importance(eval.forest), keep))
+imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
 ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, drtsev.1 = "Drought severity 1",drtsev.2 = "Drought severity 2",drtsev.3 = "Drought severity 3",drtsev.4 = "Drought severity 4")),aes(rowname,imp))+
@@ -633,7 +652,7 @@ pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
 library(hstats)
-pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
+pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 library(patchwork)
 
@@ -642,7 +661,7 @@ library(patchwork)
 #    height = 4) 
 
 
-wrap_plots(list(pdps[[2]],pdps[[1]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) &
+wrap_plots(list(pdps[[1]],pdps[[2]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) &
   #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
@@ -669,7 +688,7 @@ plot(H)
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
  # plot()
 
-partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+partial_dep(eval.forest, v = colnames(X), X = X)
 
 # Explaining one CATE
 #kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
@@ -681,7 +700,7 @@ partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining all CATEs globally
 system.time(  # 13 min
-  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+  ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
 sv_importance(shap_values)&
@@ -1501,45 +1520,66 @@ p.hat <- predict(rf)$predictions
 
 hist(p.hat)
 
-Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
-Y.hat <- predict(Y.forest)$predictions
+#Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
+#Y.hat <- predict(Y.forest)$predictions
 
-varimp.Y <- variable_importance(Y.forest)
+#varimp.Y <- variable_importance(Y.forest)
 
 # Keep the top 10 variables for CATE estimation
-keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
-keep
+#keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
+#keep
 # [1] "PctAnnual"             "MAT"                   "PctGrass"             #[4] "cv_ppt_inter"          "bp_dominance"          "proportion.nestedness" [7] "gamma_rich"            "aridity_index"         "anpp"              [10] "map"        
 
-X.cf <- X[, keep]
-W.hat <- 0.5
+#X.cf <- X[, keep]
+#W.hat <- 0.5
 
 # Set aside the first half of the data for training and the second for evaluation.
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
-train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+#train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
-tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
+#train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+eval.forest <- causal_forest(X, Y, W)
+tau.hat.eval <- predict(eval.forest, X)$predictions
 
 average_treatment_effect(eval.forest)
 # estimate    std.err 
-#0.02831036 0.01038584 
+#0.022 0.01 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X.cf)[ranked.vars[1:10]]
+colnames(X)[ranked.vars[1:10]]
 #[1] "aridity_index"         "gamma_rich"            "PctGrass"            "MAT"                   "anpp"                  "proportion.nestedness" "PctAnnual"             "cv_ppt_inter"          "map"                  "bp_dominance"     
 
-rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+#rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
 
-plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
+#plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
 
+
+rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(eval.forest, X)$predictions)
+as.ggplot(~plot(rate))
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_TOC.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
 #xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
-imp <- sort(setNames(variable_importance(eval.forest), keep))
+imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
 #par(mai = c(0.7, 2, 0.2, 0.2))
 barplot(imp, horiz = TRUE, las = 1, col = "orange")
 ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, proportion.nestedness = "Proportion nestedness",PctGrass = "% grass",PctAnnual = "% annual",MAT = "Mean annual temperature",map = "Mean annual precipitation",gamma_rich = "Gamma richness",cv_ppt_inter = "Interannual precipitaiton variability",bp_dominance = "Berger-Parker Dominance",aridity_index = "Aridity",anpp = "Site ANPP")),aes(fct_reorder(rowname,imp),imp))+
@@ -1566,7 +1606,7 @@ pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
 library(hstats)
-pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
+pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
@@ -1593,7 +1633,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/Beta diversity/figures/moderator_treat
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
 # plot()
 
-partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+partial_dep(eval.forest, v = colnames(X), X = X)
 
 # Explaining one CATE
 #kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
@@ -1603,9 +1643,9 @@ partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 #  xlab("Prediction")
 
 # Explaining all CATEs globally
-system.time(  # 13 min
-  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
-)
+
+  ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
+
 shap_values <- shapviz(ks)
 sv_importance(shap_values)&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
